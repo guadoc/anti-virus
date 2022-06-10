@@ -1,8 +1,8 @@
 from typing import List
 
-# from antivir.hand.hand import Hand
-import antivir.hand.hand as hand_lib
-from antivir.hand.card import Card
+# from poqrl.hand.hand import Hand
+import poqrl.hand.hand as hand_lib
+from poqrl.hand.card import Card
 
 
 def all_hands(n_cards: int):

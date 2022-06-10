@@ -2,9 +2,9 @@ from typing import Optional, List, Dict
 from collections import deque
 
 
-from antivir.player.abstract_player import AbstractPlayer
-from antivir.hand.deck import Deck
-from antivir.hand.hand import Hand
+from poqrl.player.abstract_player import AbstractPlayer
+from poqrl.hand.deck import Deck
+from poqrl.hand.hand import Hand
 
 
 class AbstractTable:

@@ -3,10 +3,10 @@ from math import comb
 
 import numpy as np
 
-from antivir.hand.card import Card, High
-from antivir.hand.deck import Deck
+from poqrl.hand.card import Card, High
+from poqrl.hand.deck import Deck
 
-import antivir.hand.utils as util
+import poqrl.hand.utils as util
 
 HAND_MAX_VAL = 2598956
 HAND_MIN_VAL = 1020
