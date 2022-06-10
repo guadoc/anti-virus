@@ -1,6 +1,6 @@
 # pylint: skip-file
 import pytest
-from antivir.hand.card import Card
+from poqrl.hand.card import Card
 
 
 def test_card_from_hash():

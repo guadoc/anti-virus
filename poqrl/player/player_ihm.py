@@ -1,5 +1,5 @@
 from tkinter import Button, StringVar, Entry
-from antivir.player.abstract_player import AbstractPlayer
+from poqrl.player.abstract_player import AbstractPlayer
 
 
 class PlayerIHM(AbstractPlayer):

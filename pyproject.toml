@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "antivir"
+name = "poqrl"
 version = "0.1.0"
 description = ""
 authors = ["micha <michael.blot@walnut.ai>"]

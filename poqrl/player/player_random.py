@@ -1,9 +1,9 @@
 import numpy as np
 from typing import Optional, List
-from antivir.player.abstract_player import AbstractPlayer
+from poqrl.player.abstract_player import AbstractPlayer
 
 
-from antivir.player.utils import SituationError
+from poqrl.player.utils import SituationError
 
 
 class PlayerRandom(AbstractPlayer):

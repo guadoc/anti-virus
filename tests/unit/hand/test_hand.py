@@ -1,8 +1,8 @@
 # pylint: skip-file
 from typing import List
 import pytest
-from antivir.hand.hand import Hand
-from antivir.hand.card import Card
+from poqrl.hand.hand import Hand
+from poqrl.hand.card import Card
 
 
 # class HandS(Hand):

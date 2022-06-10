@@ -4,8 +4,8 @@ from typing import List
 from tkinter import Tk, Label, Text
 from PIL import ImageTk, Image
 
-from antivir.table.abstract_table import AbstractTable
-from antivir.player.abstract_player import AbstractPlayer
+from poqrl.table.abstract_table import AbstractTable
+from poqrl.player.abstract_player import AbstractPlayer
 
 SIT_COORDINATES = [
     (20, 100),

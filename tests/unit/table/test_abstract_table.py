@@ -1,9 +1,9 @@
 from typing import List, Tuple, Union
 import pytest
 
-from antivir.player.abstract_player import AbstractPlayer
-from antivir.table.abstract_table import AbstractTable
-from antivir.hand.hand import Hand
+from poqrl.player.abstract_player import AbstractPlayer
+from poqrl.table.abstract_table import AbstractTable
+from poqrl.hand.hand import Hand
 
 
 class PlayerMock(AbstractPlayer):

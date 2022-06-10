@@ -1,5 +1,5 @@
-from antivir.hand.utils import all_hands, all_hands_from_cards
-from antivir.hand.card import Card
+from poqrl.hand.utils import all_hands, all_hands_from_cards
+from poqrl.hand.card import Card
 
 
 def test_all_hands():

@@ -1,6 +1,6 @@
 import random
 from typing import Optional, List
-from antivir.hand.card import Card
+from poqrl.hand.card import Card
 
 random.seed(77)
 
