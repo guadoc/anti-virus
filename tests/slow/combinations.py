@@ -1,7 +1,7 @@
 from collections import defaultdict
-from antivir.hand.hand import Hand
-from antivir.hand.card import Card
-from antivir.hand.utils import all_hands
+from poqrl.hand.hand import Hand
+from poqrl.hand.card import Card
+from poqrl.hand.utils import all_hands
 
 
 def test_all_hands(n_card):

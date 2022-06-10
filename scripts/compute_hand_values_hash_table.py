@@ -1,7 +1,7 @@
 from tqdm import tqdm
 import typer
-from antivir.hand.utils import all_hands
-from antivir.hand.hand_values import (
+from poqrl.hand.utils import all_hands
+from poqrl.hand.hand_values import (
     save_hand_value_dict,
     HAND_2CARDS_VALUES,
     HAND_3CARDS_VALUES,

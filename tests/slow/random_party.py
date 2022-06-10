@@ -2,8 +2,8 @@ import time
 from tqdm import tqdm
 import numpy as np
 
-from antivir.table.abstract_table import AbstractTable
-from antivir.player.player_random import PlayerRandom
+from poqrl.table.abstract_table import AbstractTable
+from poqrl.player.player_random import PlayerRandom
 
 
 def test_random_player_time():
