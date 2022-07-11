@@ -16,6 +16,7 @@ tqdm = "^4.64.0"
 tensorflow = "^2.9.1"
 notebook = "^6.4.11"
 typer = "^0.4.1"
+jax = "^0.3.13"
 
 [tool.poetry.dev-dependencies]
 

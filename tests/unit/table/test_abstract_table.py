@@ -322,6 +322,7 @@ def test_play_street(
 
     table = AbstractTable(player_list=player_list)
     table.button = table.n_players - 1
+    table.history = {i: [] for i in range(4)}
     table.play_street(
         1, table.get_players_to_play((table.button + 1) % table.n_players)
     )

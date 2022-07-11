@@ -1,6 +1,5 @@
 from typing import List
 
-# from poqrl.hand.hand import Hand
 import poqrl.hand.hand as hand_lib
 from poqrl.hand.card import Card
 

@@ -32,15 +32,16 @@ class Card:
         elif card_hash is not None:
             self.high = HIGH_HASH.index(card_hash[0])
             self.suit = SUIT_HASH.index(card_hash[1])
+            self.id = self.high + self.suit * 13
         else:
             raise ValueError("Wrong arguments for Card object")
 
+    @property
     def hash(self) -> str:
         "Compute a hash of a card"
         return f"{HIGH_HASH[self.high]}{SUIT_HASH[self.suit]}"
 
     def __str__(self):
-        print(self.suit)
         return f"{HIGH_HASH[self.high]}{SUIT_SYMBOL[self.suit]}"
 
     def __le__(self, card):

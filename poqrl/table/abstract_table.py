@@ -5,6 +5,7 @@ from collections import deque
 from poqrl.player.abstract_player import AbstractPlayer
 from poqrl.hand.deck import Deck
 from poqrl.hand.hand import Hand
+from poqrl.hand.card import Card
 
 
 class AbstractTable:
@@ -24,6 +25,7 @@ class AbstractTable:
         self.pot = 0
         self.side_pots = []
         self.total_pot = 0
+        self.history = None
 
     def sit_player(self, player: AbstractPlayer, position: int):
         self.players[position] = player
@@ -37,6 +39,7 @@ class AbstractTable:
         self.assign_pots()
         for player in self.players:
             player.close_hand()
+        # print(self)
 
     def distribute_hands(self):
         """Distribute two cards to the players"""
@@ -45,25 +48,25 @@ class AbstractTable:
             card2 = self.deck.distribute_random_card()
             player.set_hand(card1, card2)
 
-    def distribute_board_card(self):
-        random_card = self.deck.distribute_random_card()
-        self.board.add_card(random_card)
+    def distribute_board_card(self, card: Card):
+        self.board.add_card(card)
         for player in self.players:
-            player.hand.add_card(random_card)
+            player.hand.add_card(card)
 
     def distribute_flop(self):
-        self.distribute_board_card()
-        self.distribute_board_card()
-        self.distribute_board_card()
+        self.distribute_board_card(self.deck.distribute_random_card())
+        self.distribute_board_card(self.deck.distribute_random_card())
+        self.distribute_board_card(self.deck.distribute_random_card())
 
     def distribute_turn(self):
-        self.distribute_board_card()
+        self.distribute_board_card(self.deck.distribute_random_card())
 
     def distribute_river(self):
-        self.distribute_board_card()
+        self.distribute_board_card(self.deck.distribute_random_card())
 
     def get_player_action(self, player: AbstractPlayer, street_number: int):
         play = player.play_street(street_number)
+        self.history[street_number].append((player.position, play, self.current_bet))
         return play
 
     def assign_pots(self):
@@ -195,8 +198,8 @@ class AbstractTable:
         self.player_all_in = False
         self.side_pots = []
         self.pot = 0
-        # distribute the hand to players
-        self.distribute_hands()
+        # clear the precedent hand histroy
+        self.history = {i: [] for i in range(4)}
 
     def get_blends(self):
         self.players[(self.button + 1) % self.n_players].raise_pot(1)
@@ -234,6 +237,7 @@ class AbstractTable:
     def play_hand(self):
         self.update_button()
         self.init_new_hand()
+        self.distribute_hands()
         self.play_preflop()
         n_in_hand, player_to_play = self.gather_chips_and_continue()
         if n_in_hand <= 1:
@@ -273,7 +277,8 @@ class AbstractTable:
         table_string = ""
         for player in self.players:
             table_string += str(player) + "\n"
+        table_string += f"{self.board}\n"
         table_string += f"pot: {self.pot}\n"
         for pot in self.side_pots:
-            table_string += f"{pot[0]}: {pot[1]}\n"
+            table_string += f"side pot {pot[0]}: {pot[1]}\n"
         return table_string

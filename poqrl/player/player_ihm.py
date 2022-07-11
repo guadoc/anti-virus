@@ -31,6 +31,11 @@ class PlayerIHM(AbstractPlayer):
 
     def play_street(self, street_number: int):
         current_bet = self.table.current_bet
+        if street_number < 3:
+            if current_bet > self.chips_committed:
+                return self.call()
+            else:
+                return self.check()
         button_raise = Button(
             self.table.window,
             text="RAISE",

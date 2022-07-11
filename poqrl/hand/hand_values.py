@@ -25,11 +25,8 @@ def load_hand_value_dict(n_card_hand: int) -> Dict[str, float]:
     return {}
 
 
-HAND_2CARDS_VALUES = load_hand_value_dict(2)
-HAND_3CARDS_VALUES = load_hand_value_dict(3)
-HAND_4CARDS_VALUES = load_hand_value_dict(4)
-HAND_5CARDS_VALUES = load_hand_value_dict(5)
-HAND_6CARDS_VALUES = load_hand_value_dict(6)
+# HAND_AVG_VALUES = {n_card: load_hand_value_dict(n_card) for n_card in range(2, 7)}
+HAND_AVG_VALUES = {n_card: load_hand_value_dict(n_card) for n_card in range(2, 5)}
 
 
 def save_hand_value_dict(n_card_hand: int, value_dict: Dict[str, float]) -> None:

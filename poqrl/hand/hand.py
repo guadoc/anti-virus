@@ -1,12 +1,10 @@
 from typing import List, Optional, Tuple
 from math import comb
 
-import numpy as np
-
 from poqrl.hand.card import Card, High
 from poqrl.hand.deck import Deck
-
 import poqrl.hand.utils as util
+from poqrl.hand.hand_values import HAND_AVG_VALUES
 
 HAND_MAX_VAL = 2598956
 HAND_MIN_VAL = 1020
@@ -40,21 +38,16 @@ class Hand:
         return self._value
 
     @property
-    def get_avg_value(self):
+    def avg_value(self):        
         if self._avg_value is None:
-            self._avg_value = self.compute_mc_avg_value()
+            hand_size = len(self.cards)
+            if hand_size == 7:
+                self._avg_value = self.value                        
+            elif hand_size in HAND_AVG_VALUES and self.hash in HAND_AVG_VALUES[hand_size] and True:                
+                self._avg_value = HAND_AVG_VALUES[hand_size][self.hash]
+            else:                
+                self._avg_value = self.compute_mc_avg_value()
         return self._avg_value
-
-    def compute_7cards_hand_average_value(self):
-        avg_value = 0
-        hand_number = 0
-        for complete_hand in util.all_hands_from_cards(7, self.cards):
-            hand_number += 1
-            avg_value = (
-                avg_value * ((hand_number - 1) / hand_number)
-                + complete_hand.value / hand_number
-            )
-        return avg_value
 
     def __le__(self, hand):
         return self.value <= hand.value
@@ -80,13 +73,25 @@ class Hand:
         It is usefull for the scan of the hand and for its hash key"""
         self.cards.sort(reverse=True)
 
+    @property
     def hash(self):
         """Compute the hash key of a hand"""
         self.sort()
-        return "".join(card.hash() for card in self.cards)
+        return "".join(card.hash for card in self.cards)
 
     def __str__(self) -> str:
         return " ".join(str(card) for card in self.cards)
+
+    def compute_7cards_hand_average_value(self):
+        avg_value = 0
+        hand_number = 0
+        for complete_hand in util.all_hands_from_cards(7, self.cards):
+            hand_number += 1
+            avg_value = (
+                avg_value * ((hand_number - 1) / hand_number)
+                + complete_hand.value / hand_number
+            )
+        return avg_value
 
     def compute_mc_avg_value(self, n_draw: int = 1000) -> float:
         n_card = len(self.cards)
@@ -147,7 +152,7 @@ class Hand:
         """Scan the hand to get information about
         high and suit occurencies"""
         self.sort()
-        card_array = np.array([[card.high, card.suit] for card in self.cards])
+        card_array = [[card.high, card.suit] for card in self.cards]
         return self._scan_sorted_hand(card_array)
 
     def get_combination(self):

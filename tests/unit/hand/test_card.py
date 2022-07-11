@@ -17,7 +17,7 @@ def test_card_from_hash():
     [(14, "3d"), (12, "Ac"), (51, "As"), (0, "2c"), (35, "Jh")],
 )
 def test_card_from_id(id: int, card_hash: str):
-    assert Card(id=id).hash() == card_hash
+    assert Card(id=id).hash == card_hash
 
 
 def test_card_to_string():

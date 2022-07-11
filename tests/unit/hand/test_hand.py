@@ -22,7 +22,7 @@ def test_sort():
         ]
     )
     hand.sort()
-    assert hand.hash() == "AsKh9h9d5d2c"
+    assert hand.hash == "AsKh9h9d5d2c"
 
 
 @pytest.mark.parametrize(

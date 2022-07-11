@@ -6,6 +6,7 @@ from PIL import ImageTk, Image
 
 from poqrl.table.abstract_table import AbstractTable
 from poqrl.player.abstract_player import AbstractPlayer
+from poqrl.hand.card import Card
 
 SIT_COORDINATES = [
     (20, 100),
@@ -29,10 +30,12 @@ BUTTON_COORDS = [
     (170, 200),
     (420, 200),
     (770, 255),
-    (815, 460),
+    (750, 460),
     (380, 425),
     (125, 415),
 ]
+
+POTS_COORDS = (460, 355)
 
 
 class GraphicTable(AbstractTable):
@@ -44,109 +47,108 @@ class GraphicTable(AbstractTable):
         self.graphic_utils = Path("graphism")
         self.window.geometry("1000x990")
         self.player_labels = [{} for _ in range(self.n_players)]
-        self.labels = {}
+        self.labels = {label: Label(self.window) for label in ["pot"] + [f"pot{i}" for i in range(self.n_players)] + [f"board_card{i}" for i in range(5)]}
         self.labels["table"] = self.place_label(0, 0)
-        self.labels["button"] = self.place_label(500, 350)
-        for i in range(5):
-            self.labels[f"board_card{i}"] = self.place_label(x=300 + i * 60, y=270)
-        self.labels["total_pot"] = self.place_label(460, 355)
-        for i in range(self.n_players - 1):
-            self.labels[f"pot{i}"] = self.place_label(x=460, y=400 + i * 45)
+        self.update_image(self.labels["table"], self.graphic_utils / "table2.png")
         for player in self.players:
             self.place_player_labels(player)
-        self.update_image(self.labels["table"], self.graphic_utils / "table2.png")
+        self.labels["button"] = self.place_label(500, 350)
         self.update_image(
             self.labels["button"], self.graphic_utils / "button.jpeg", 25, 25
         )
         self.window.update()
+    
+    # def init_player_label(self, player_labels):
+    #     player_labels = {""}
 
-    def get_player_action(self, player: AbstractPlayer, street_number: int):
-        self.update_player(player, player.position)
-        self.window.update()
-        time.sleep(1.5)
-        play = super().get_player_action(player, street_number)
-        self.update_player(player, -1)
-        if not player.is_in_hand:
-            self.reset_player_hand(player)
-        self.update_pots()
-        self.window.update()
-        return play
 
     def update_button(self):
+        super().update_button()
         x, y = BUTTON_COORDS[self.button]
         self.labels["button"].place(x=x, y=y)
 
     def init_new_hand(self):
-        time.sleep(1.0)
+        time.sleep(0.5)
         print("-----------NEW HAND----------")
         super().init_new_hand()
         self.reset_board()
-        self.reset_pot()
         for player in self.players:
-            self.update_player(player, -1)
-        self.update_button()
+            self.update_player(player, -1)        
         self.window.update()
         time.sleep(0.8)
 
-    def gather_chips_and_continue(self, one_player):
-        one_player = super().gather_chips_and_continue(one_player)
+    def gather_chips_and_continue(self):
+        outs = super().gather_chips_and_continue()
         self.update_pots()
         for player in self.players:
             self.update_player(player, -1)
-
         self.window.update()
-        return one_player
+        return outs
 
     def update_pots(self):
-        self.update_text(self.labels["total_pot"], f"total pot: {self.pot}")
+        coord_x, coord_y = POTS_COORDS        
+        self.labels["pot"].destroy()
+        self.labels["pot"] = self.place_label(coord_x, coord_y)
+        self.labels["pot"].config(text=f"Pot: {self.pot}")
         for i, pot_n_players in enumerate(self.side_pots):
-            self.update_text(self.labels[f"pot{i}"], str(pot_n_players[0]))
+            self.labels[f"pot{i}"].destroy()
+            self.labels[f"pot{i}"] = self.place_label(x=coord_x, y=coord_y + i * 45)
+            self.labels[f"pot{i}"].config(text=str(pot_n_players[0]))
 
-    def reset_pot(self):
-        self.reset_text(self.labels["total_pot"])
-        for i in range(self.n_players - 1):
-            self.reset_text(self.labels[f"pot{i}"])
+    def reset_pots(self):
+        self.labels["pot"].destroy()
+        for i, _ in enumerate(self.side_pots):
+            self.labels[f"pot{i}"].destroy()
 
     def yield_pot_to_player(self, pot: int, player: AbstractPlayer):
         print(f"{player.name} wins {pot}")
         super().yield_pot_to_player(pot, player)
 
-    def distribute_board_card(self):
-        super().distribute_board_card()
+    def distribute_board_card(self, card: Card):
+        super().distribute_board_card(card)
         self.update_board()
         time.sleep(0.25)
 
     def distribute_hands(self):
         super().distribute_hands()
-        self.window.update()
+        for player in self.players:
+            self.update_player(player, -1)
         time.sleep(0.25)
+        print(self)
 
     def assign_pots(self):
         super().assign_pots()
         time.sleep(0.5)
+        self.reset_pots()
 
     def reset_board(self):
         for i in range(5):
-            self.reset_image(self.labels[f"board_card{i}"])
+            self.labels[f"board_card{i}"].destroy()
 
     def update_board(self):
         for i, card in enumerate(self.board.cards):
+            self.labels[f"board_card{i}"].destroy()
+            self.labels[f"board_card{i}"] = self.place_label(x=300 + i * 60, y=270)
             self.update_image(
                 self.labels[f"board_card{i}"],
-                self.graphic_utils / "cards" / f"{card}.bmp",
+                self.graphic_utils / "cards" / f"{card.hash}.bmp",
             )
-
-    def reset_player_hand(self, player):
-        player_labels = self.player_labels[player.position]
-        self.reset_image(player_labels["card1"])
-        self.reset_image(player_labels["card2"])
 
     def get_blends(self):
         super().get_blends()
         self.update_player(self.players[(self.button + 1) % self.n_players], -1)
-        self.update_player(self.players[(self.button + 2) % self.n_players], -1)
-        self.window.update()
         time.sleep(0.5)
+        self.update_player(self.players[(self.button + 2) % self.n_players], -1)        
+        time.sleep(0.5)
+
+    def get_player_action(self, player: AbstractPlayer, street_number: int):
+        self.update_player(player, player.position)        
+        time.sleep(0.6)
+        play = super().get_player_action(player, street_number)
+        self.update_pots()
+        self.update_player(player, -1)  
+        time.sleep(0.6)
+        return play
 
     def update_player(self, player, playing_player):
         position = player.position
@@ -156,55 +158,65 @@ class GraphicTable(AbstractTable):
         else:
             path_to_sit = self.graphic_utils / "sit.png"
         self.update_image(player_labels["sit"], path_to_sit, 100, 100)
-        self.update_text(player_labels["stack"], str(player.stack))
-        self.update_text(player_labels["name"], player.name)
+        player_labels["stack"].config(text=str(player.stack))        
+
+        player_labels["card1"].destroy()
+        player_labels["card2"].destroy()
+
         card1, card2 = player.cards
         if card1 and card2 and player.is_in_hand:
+            sit_coord_x, sit_coord_y = SIT_COORDINATES[position]
+            player_labels["card1"] = self.place_label(
+                sit_coord_x,
+                sit_coord_y - 45,
+            )
+            player_labels["card2"] = self.place_label(
+                sit_coord_x + 40,
+                sit_coord_y - 45,
+            )
             self.update_image(
                 player_labels["card1"],
-                self.graphic_utils / "cards" / f"{card1}.bmp",
+                self.graphic_utils / "cards" / f"{card1.hash}.bmp",
             )
             self.update_image(
                 player_labels["card2"],
-                self.graphic_utils / "cards" / f"{card2}.bmp",
-            )
+                self.graphic_utils / "cards" / f"{card2.hash}.bmp",
+            )            
+            self.window.update()
+
+        player_labels["chips"].destroy()        
         if player.chips_committed:
-            self.update_text(player_labels["chips"], str(player.chips_committed))
-        else:
-            self.reset_text(player_labels["chips"])
+            player_labels["chips"] = self.place_label(
+                x=CHIPS_COORDS[position][0], y=CHIPS_COORDS[position][1]
+            )
+            player_labels["chips"].config(text=str(player.chips_committed))
+        self.window.update()
 
     def place_player_labels(self, player: AbstractPlayer):
         """Add the player and its information on the window"""
         position = player.position
         sit_coord_x, sit_coord_y = SIT_COORDINATES[position]
-        self.player_labels[position]["sit"] = self.place_label(sit_coord_x, sit_coord_y)
-        self.player_labels[position]["stack"] = self.place_label(
+        player_labels = self.player_labels[position]
+        player_labels["sit"] = self.place_label(sit_coord_x, sit_coord_y)
+        player_labels["stack"] = self.place_label(
             x=sit_coord_x + 40, y=sit_coord_y + 50
         )
-
-        self.player_labels[position]["name"] = self.place_label(
+        player_labels["name"] = self.place_label(
             x=sit_coord_x + 40, y=sit_coord_y + 20
         )
+        player_labels["name"].config(text=player.name)
+        player_labels["card1"] = Label(self.window)
+        player_labels["card2"] = Label(self.window)
+        player_labels["chips"] = Label(self.window)
 
-        self.player_labels[position]["chips"] = self.place_label(
-            x=CHIPS_COORDS[position][0], y=CHIPS_COORDS[position][1]
-        )
 
-        self.player_labels[position]["card1"] = self.place_label(
-            sit_coord_x,
-            sit_coord_y - 45,
-        )
-        self.player_labels[position]["card2"] = self.place_label(
-            sit_coord_x + 40,
-            sit_coord_y - 45,
-        )
-
-    def place_label(self, x, y, x_size=None, y_size=None):
+    def place_label(self, x, y):
         label = Label(self.window)
         label.pack()
         label.place(x=x, y=y)
         return label
 
+    #@staticmethod
     def update_image(self, label, image_path, x_size=None, y_size=None):
         pil_image = Image.open(image_path)
         if x_size and y_size:
@@ -213,13 +225,3 @@ class GraphicTable(AbstractTable):
         label.config(image=tk_image)
         label.photo = tk_image
 
-    def update_text(self, label, text):
-        label.config(text=text)
-
-    def reset_image(self, label):
-        label.config(image="")
-        # label.pack_forget()
-
-    def reset_text(self, label):
-        label.config(text="")
-        # label.pack_forget()

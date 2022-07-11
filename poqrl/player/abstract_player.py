@@ -15,15 +15,15 @@ class AbstractPlayer:
         name: str = "AbstractPlayer",
     ):
         self.table = None
-        self.stack = stack
         self.base_stack = stack
+        self.stack = stack
+        self.refill = 1
         self.chips_committed = 0
         self.name = name
         self.hand = Hand()
         self.cards = (None, None)  # useful for graphic display
         self.position = -1
         self.is_in_hand = True
-        self.refill = 1
 
     @abstractmethod
     def play_street(self, street_number: int) -> str:
@@ -51,6 +51,10 @@ class AbstractPlayer:
     def close_hand(self):
         """Method called at the end of the hand"""
 
+    def reset_player(self):
+        self.stack = self.base_stack
+        self.refill = 1
+
     def sit_on_table(self, table, position):
         """Set the table configuration for the player"""
         self.position = position
@@ -71,6 +75,9 @@ class AbstractPlayer:
         if self.stack <= 0:
             self.stack = self.base_stack
             self.refill += 1
+        elif self.stack > 10 * self.base_stack:
+            self.refill -= 9
+            self.stack = self.stack - 9 * self.base_stack
 
     def commit_chips(self, chips_amount: int):
         """Put chips on the table.
@@ -98,7 +105,8 @@ class AbstractPlayer:
 
     def raise_pot(self, bet_amount: int) -> str:
         """Raise the pot.
-        The stack and committed chips are updated accordingly, as well as the table variables"""
+        The stack and committed chips are updated accordingly,
+         as well as the table variables"""
         current_bet = self.table.current_bet
         previous_bet = self.table.previous_bet
         if self.stack <= current_bet:
@@ -109,7 +117,7 @@ class AbstractPlayer:
             and bet_amount < self.stack
         ):
             raise ActionError(
-                f"{self.name}--Raise amount ({bet_amount}) not compatible with \
+                f"{self.name} -- Raise amount ({bet_amount}) not compatible with \
                     precedent bet values ({current_bet} and {previous_bet})"
             )
         chips_to_pay = min(bet_amount - self.chips_committed, self.stack)
@@ -125,7 +133,7 @@ class AbstractPlayer:
         """Fold the hand. The player will not play in the rest of the hand"""
         if self.chips_committed == self.table.current_bet:
             raise ActionError(
-                f"{self.name}--Fold not usefull as chips committed \
+                f"{self.name} -- Fold not usefull as chips committed \
                     equals current bet ({self.chips_committed})"
             )
         with suppress(ValueError, AttributeError):
@@ -140,13 +148,13 @@ class AbstractPlayer:
         # print(f"{self.name}({self.stack}) checks")
         if self.chips_committed < self.table.current_bet:
             raise ActionError(
-                f"{self.name}--Check not authorized as chips_committed \
+                f"{self.name} -- Check not authorized as chips_committed \
                     ({self.chips_committed}) not equal to current_bet ({self.table.current_bet})"
             )
         if self.table.current_bet > 2:
             # TODO this implementation enables to manage the blends case but is not complete
             raise ActionError(
-                f"{self.name}--Cannot check when last bet is {self.table.current_bet}"
+                f"{self.name} -- Cannot check when last bet is {self.table.current_bet}"
             )
         return "check"
 
