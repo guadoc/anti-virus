@@ -4,6 +4,8 @@ from contextlib import suppress
 from poqrl.hand.card import Card
 from poqrl.hand.hand import Hand
 from poqrl.player.utils import ActionError, SituationError
+from poqrl.types.street import Street
+from poqrl.types.action import *
 
 
 class AbstractPlayer:
@@ -26,7 +28,15 @@ class AbstractPlayer:
         self.is_in_hand = True
 
     @abstractmethod
-    def play_street(self, street_number: int) -> str:
+    def save(self, folder):
+        pass
+
+    @abstractmethod
+    def load(self, folder):
+        pass
+
+    @abstractmethod
+    def play_street(self, street: Street) -> Action:
         """Return the player action for street 'street number'"""
         if self.table.current_bet and self.chips_committed > self.table.current_bet:
             raise SituationError(
@@ -36,12 +46,13 @@ class AbstractPlayer:
         if (
             self.chips_committed == self.table.current_bet
             and self.table.current_bet > 0
-            and (self.table.current_bet > 2 or street_number != 0)
+            and (self.table.current_bet > 2 or street != 0)
         ):
             raise SituationError(
                 f"{self.name} -- chips_committed ({self.chips_committed}) == \
                     current_bet ({self.table.current_bet}) and current_bet > 0"
             )
+        return CHECK  # useless
 
     def get_chips_won(self):
         """Return the amount of chips (in blend) win (or lost) by the player"""
@@ -52,6 +63,7 @@ class AbstractPlayer:
         """Method called at the end of the hand"""
 
     def reset_player(self):
+        """Prepare the player for coming hand"""
         self.stack = self.base_stack
         self.refill = 1
 
@@ -61,7 +73,7 @@ class AbstractPlayer:
         self.table = table
 
     def set_hand(self, card1: Card, card2: Card):
-        """Set the player hand with the givcen cards"""
+        """Set the player hand with the given cards"""
         self.hand.add_card(card1)
         self.hand.add_card(card2)
         self.cards = (card1, card2)  # for graphical interface
@@ -85,7 +97,7 @@ class AbstractPlayer:
         self.stack -= chips_amount
         self.chips_committed += chips_amount
 
-    def call(self) -> str:
+    def call(self) -> Action:
         """Call the last bet. The stack and committed chips are updated accordingly"""
         if (
             self.chips_committed == self.table.current_bet
@@ -100,10 +112,9 @@ class AbstractPlayer:
         self.commit_chips(chips_to_pay)
         if self.stack == 0:
             self.table.player_all_in = True
-        # print(f"{self.name}({self.stack}) calls {chips_to_pay}")
-        return "call"
+        return CALL
 
-    def raise_pot(self, bet_amount: int) -> str:
+    def raise_pot(self, bet_amount: int) -> Action:
         """Raise the pot.
         The stack and committed chips are updated accordingly,
          as well as the table variables"""
@@ -126,10 +137,9 @@ class AbstractPlayer:
         self.table.current_bet = self.chips_committed
         if self.stack == 0:
             self.table.player_all_in = True
-        # print(f"{self.name}({self.stack}) raises {chips_to_pay}")
-        return "raise"
+        return RAISE
 
-    def fold(self):
+    def fold(self) -> Action:
         """Fold the hand. The player will not play in the rest of the hand"""
         if self.chips_committed == self.table.current_bet:
             raise ActionError(
@@ -140,12 +150,10 @@ class AbstractPlayer:
             for _, player_list in self.table.side_pots:
                 player_list.remove(self.position)
         self.is_in_hand = False
-        # print(f"{self.name}({self.stack}) folds")
-        return "fold"
+        return FOLD
 
-    def check(self):
+    def check(self) -> Action:
         """Check the pot"""
-        # print(f"{self.name}({self.stack}) checks")
         if self.chips_committed < self.table.current_bet:
             raise ActionError(
                 f"{self.name} -- Check not authorized as chips_committed \
@@ -156,7 +164,7 @@ class AbstractPlayer:
             raise ActionError(
                 f"{self.name} -- Cannot check when last bet is {self.table.current_bet}"
             )
-        return "check"
+        return CHECK
 
     def __str__(self):
         player_string = (

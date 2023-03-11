@@ -7,10 +7,13 @@ from keras.models import Sequential
 from keras.layers import Dense
 import numpy as np
 
-from poqrl.player.abstract_player import AbstractPlayer
+# from poqrl.player.abstract_player import AbstractPlayer
+from poqrl.player.abstract_player import PlayerTracked
+from poqrl.player.player_log import PlayerLog
 
 
-class PlayerBotV1(AbstractPlayer):
+class PlayerBotV1(PlayerTracked):
+    # class PlayerBotV1(PlayerLog):
     def __init__(
         self, stack: int = 100, name: str = "Bot_v1", net=None, summary_writer=None
     ):
@@ -21,7 +24,7 @@ class PlayerBotV1(AbstractPlayer):
             self.qvalues_network = self.get_qvalues_network()
 
         # self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
-        self.optimizer = tf.keras.optimizers.SGD(learning_rate=0.001)
+        self.optimizer = tf.keras.optimizers.SGD(learning_rate=0.0002)
         self.gradient_variables = []
         self.training = False
 
@@ -44,7 +47,7 @@ class PlayerBotV1(AbstractPlayer):
     def get_input(self, street_number: int):
         n_raise = 0
         for position, action, _ in self.table.history[street_number]:
-            if action == "raise" and position != self.position:
+            if action.name == "raise" and position != self.position:
                 n_raise += 1
         avg_hand = self.hand.avg_value
         avg_any = 1924980.5
@@ -58,6 +61,9 @@ class PlayerBotV1(AbstractPlayer):
         )
         return tf.expand_dims(tf.constant(intput_tensor), axis=0)
 
+    def get_qvalue_from_net_output(self, output):
+        return tf.math.tanh(output)
+
     def get_qvalues_network(self):
         net = Sequential()
         net.add(Dense(20, activation="relu", input_dim=2))
@@ -66,13 +72,11 @@ class PlayerBotV1(AbstractPlayer):
         print(net.summary())
         return net
 
-    def get_qvalue_from_net_output(self, output):
-        return tf.math.tanh(output)
-
     def save_data(self, folder_path: Path) -> Path:
         saving_folder = folder_path / self.name
         saving_folder.mkdir(parents=True, exist_ok=True)
         self.qvalues_network.save(saving_folder / "model")
+        print(f"Model saved in {saving_folder}")
         return saving_folder
 
     def load_data_from_path(self, path: Path):
@@ -87,9 +91,9 @@ class PlayerBotV1(AbstractPlayer):
         super().reset_hand()
         self.gradient_variables = []
 
-    def get_decision_from_input(self, input, training=False):
+    def get_decision_from_input(self, input_tensor, training=False):
         qvalues = self.get_qvalue_from_net_output(
-            self.qvalues_network(input, training=training)
+            self.qvalues_network(input_tensor, training=training)
         )[0]
         if training:
             decision = np.random.choice([0, 1])
@@ -107,26 +111,28 @@ class PlayerBotV1(AbstractPlayer):
             else:
                 action = self.check()
         else:
-            input = self.get_input(street_number)
+            input_tensor = self.get_input(street_number)
             if self.training:
                 with tf.GradientTape() as tape:
                     decision, qvalue = self.get_decision_from_input(
-                        input, training=True
+                        input_tensor, training=True
                     )
 
                 grad = tape.gradient(qvalue, self.qvalues_network.trainable_variables)
                 self.gradient_variables.append((grad, qvalue, current_stack))
             else:
-                decision, qvalue = self.get_decision_from_input(input, training=False)
+                decision, qvalue = self.get_decision_from_input(
+                    input_tensor, training=False
+                )
 
             if qvalue < 0 and from_bet and not self.training:
                 action = self.fold()
             else:
                 action = self.get_decision(decision, from_bet)
-        self.action_frequency[street_number][action] += 1
+        self.action_frequency[street_number][action.name] += 1
         if street_number == 3:
-            self.histograms[street_number][action].append(self.hand.value)
-            self.action_qvalues[street_number][action].append(qvalue)
+            self.histograms[street_number][action.name].append(self.hand.value)
+            self.action_qvalues[street_number][action.name].append(qvalue)
         return action
 
     def get_decision(self, decision, from_bet):

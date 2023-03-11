@@ -6,6 +6,8 @@ from poqrl.player.abstract_player import AbstractPlayer
 from poqrl.hand.deck import Deck
 from poqrl.hand.hand import Hand
 from poqrl.hand.card import Card
+from poqrl.types.street import Street
+from poqrl.types.action import *
 
 
 class AbstractTable:
@@ -28,18 +30,20 @@ class AbstractTable:
         self.history = None
 
     def sit_player(self, player: AbstractPlayer, position: int):
+        """Anchor one player to the table"""
         self.players[position] = player
         player.sit_on_table(self, position)
 
     def set_players(self, player_list: List[AbstractPlayer]):
+        """Anchor players to the table"""
         for position, player in enumerate(player_list):
             self.sit_player(player, position)
 
     def close_hand(self):
+        """Called at the end of the RIVER"""
         self.assign_pots()
         for player in self.players:
             player.close_hand()
-        # print(self)
 
     def distribute_hands(self):
         """Distribute two cards to the players"""
@@ -49,24 +53,31 @@ class AbstractTable:
             player.set_hand(card1, card2)
 
     def distribute_board_card(self, card: Card):
+        """ "Distribute a card to the board"""
         self.board.add_card(card)
         for player in self.players:
             player.hand.add_card(card)
 
     def distribute_flop(self):
+        """Distribute three cards to the board.
+        This method is called when flop needs to be distributed"""
         self.distribute_board_card(self.deck.distribute_random_card())
         self.distribute_board_card(self.deck.distribute_random_card())
         self.distribute_board_card(self.deck.distribute_random_card())
 
     def distribute_turn(self):
+        """Distribute one card to the board.
+        This method is called when turn needs to be distributed"""
         self.distribute_board_card(self.deck.distribute_random_card())
 
     def distribute_river(self):
+        """Distribute one cards to the board.
+        This method is called when river needs to be distributed"""
         self.distribute_board_card(self.deck.distribute_random_card())
 
-    def get_player_action(self, player: AbstractPlayer, street_number: int):
-        play = player.play_street(street_number)
-        self.history[street_number].append((player.position, play, self.current_bet))
+    def get_player_action(self, player: AbstractPlayer, street: Street) -> Action:
+        play = player.play_street(street)
+        self.history[street].append((player.position, play, self.current_bet))
         return play
 
     def assign_pots(self):
@@ -206,33 +217,32 @@ class AbstractTable:
         self.players[(self.button + 2) % self.n_players].raise_pot(2)
 
     def get_players_to_play(self, starting_position: int = 0, exclude_starter: int = 0):
-        player_stack = []
+        player_queue = []
         for i in range(exclude_starter, self.n_players):
             player = self.players[(starting_position + i) % self.n_players]
             if player.is_in_hand and player.stack:
-                player_stack.append(player)
-        return player_stack
+                player_queue.append(player)
+        return player_queue
 
     def get_player_in_hand(self):
         return [player for player in self.players if player.is_in_hand]
 
-    def play_rounds(self, player_stack, street_number):
-        while player_stack:
-            player = player_stack.pop(0)
-            action = self.get_player_action(player, street_number)
-            if action == "raise":
-                player_stack = self.get_players_to_play(player.position, 1)
+    def play_rounds(self, player_queue: List[AbstractPlayer], street: Street):
+        while player_queue:
+            player = player_queue.pop(0)
+            action = self.get_player_action(player, street)
+            if action == RAISE:
+                player_queue = self.get_players_to_play(player.position, 1)
 
     def play_preflop(self):
         self.get_blends()
-        player_stack = self.get_players_to_play((self.button + 3) % self.n_players)
-        self.play_rounds(player_stack, street_number=0)
+        player_queue = self.get_players_to_play((self.button + 3) % self.n_players)
+        self.play_rounds(player_queue, Street.PREFLOP)
 
-    def play_street(self, street_number: int, player_to_play):
-        # print(f"--street {street_number}")
+    def play_street(self, player_to_play, street: Street):
         self.current_bet = 0
         self.previous_bet = 0
-        self.play_rounds(player_to_play, street_number)
+        self.play_rounds(player_to_play, street)
 
     def play_hand(self):
         self.update_button()
@@ -245,7 +255,7 @@ class AbstractTable:
         else:
             self.distribute_flop()
             if len(player_to_play) > 1:
-                self.play_street(1, player_to_play)
+                self.play_street(player_to_play, Street.FLOP)
                 n_in_hand, player_to_play = self.gather_chips_and_continue()
             else:
                 self.distribute_turn()
@@ -257,7 +267,7 @@ class AbstractTable:
         else:
             self.distribute_turn()
             if len(player_to_play) > 1:
-                self.play_street(2, player_to_play)
+                self.play_street(player_to_play, Street.TURN)
                 n_in_hand, player_to_play = self.gather_chips_and_continue()
             else:
                 self.distribute_river()
@@ -268,17 +278,22 @@ class AbstractTable:
         else:
             self.distribute_river()
             if len(player_to_play) > 1:
-                self.play_street(3, player_to_play)
+                self.play_street(player_to_play, Street.RIVER)
                 n_in_hand, player_to_play = self.gather_chips_and_continue()
 
         return self.close_hand()
 
     def __str__(self):
-        table_string = ""
-        for player in self.players:
-            table_string += str(player) + "\n"
+        table_string = "---------------------------------------\n"
+        for position, player in enumerate(self.players):
+            table_string += str(player)
+            if self.button == position:
+                table_string += " B"
+            table_string += "\n"
         table_string += f"{self.board}\n"
         table_string += f"pot: {self.pot}\n"
         for pot in self.side_pots:
             table_string += f"side pot {pot[0]}: {pot[1]}\n"
+        table_string += f"bets: {self.previous_bet}\{self.current_bet}\n"
+        table_string += "---------------------------------------\n"
         return table_string

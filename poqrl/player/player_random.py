@@ -1,48 +1,49 @@
 import numpy as np
 from typing import Optional, List
+
 from poqrl.player.abstract_player import AbstractPlayer
-
-
+from poqrl.player.player_log import PlayerLog
 from poqrl.player.utils import SituationError
+from poqrl.types.street import Street
+from poqrl.types.action import *
 
 
+# class PlayerRandom(PlayerLog):
 class PlayerRandom(AbstractPlayer):
     def __init__(
         self,
         stack: int = 100,
         name="Random Player",
-        p_bet: Optional[List[int]] = None,
-        p_nobet: Optional[List[int]] = None,
+        aggressivity: float = 0.1,
+        loosiness: float = 0.3,
     ):
         super().__init__(stack=stack, name=name)
-        if p_bet:
-            self.p_bet = p_bet
-        else:
-            self.p_bet = [0.05, 0.3, 0.65]
-        if p_nobet:
-            self.p_nobet = p_nobet
-        else:
-            self.p_nobet = [0.35, 0.65]
+        self.p_call_all = [loosiness, 1 - loosiness]
+        self.p_aggro_all = [aggressivity, 1 - aggressivity]
 
-    def play_street(self, street_number: int):
+        self.call_all = False
+        self.aggro_all = False
+
+    def reset_hand(self):
+        self.call_all = np.random.choice([True, False], p=self.p_call_all)
+        self.aggro_all = np.random.choice([True, False], p=self.p_aggro_all)
+        super().reset_hand()
+
+    def play_street(self, street: Street) -> Action:
+        # super().play_street(street)
         if self.chips_committed < self.table.current_bet:
-            action = np.random.choice(["raise", "call", "fold"], p=self.p_bet)
-        else:
-            action = np.random.choice(["raise", "check"], p=self.p_nobet)
-        return self.play_from_action(action)
-
-    def play_from_action(self, action: str):
-        if action == "raise":
-            if self.stack <= self.table.current_bet:
+            if self.call_all:
                 return self.call()
-            if self.table.current_bet > 0:
-                raise_amount = 3 * self.table.current_bet - self.table.previous_bet
             else:
-                raise_amount = 2
-            return self.raise_pot(raise_amount)
-        elif action == "call":
-            return self.call()
-        elif action == "check":
-            return self.check()
+                return self.fold()
         else:
-            return self.fold()
+            if self.aggro_all:
+                if self.stack <= self.table.current_bet:
+                    return self.call()
+                if self.table.current_bet > 0:
+                    bet_amount = 3 * self.table.current_bet - self.table.previous_bet
+                else:
+                    bet_amount = int(self.table.pot / 2)
+                return self.raise_pot(bet_amount)
+            else:
+                return self.check()

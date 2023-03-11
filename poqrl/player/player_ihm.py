@@ -1,13 +1,20 @@
 from tkinter import Button, StringVar, Entry
 from poqrl.player.abstract_player import AbstractPlayer
+from poqrl.player.player_log import PlayerLog
 
+from poqrl.types.street import Street
+from poqrl.types.action import *
 
-class PlayerIHM(AbstractPlayer):
+# class PlayerIHM(AbstractPlayer):
+class PlayerIHM(PlayerLog):
     """Player that can play through the IHM"""
 
     def __init__(self, name="ihm_player"):
         super().__init__(name=name)
         self.waiting_condition = None
+
+    def close_hand(self):
+        super().close_hand()
 
     def sit_on_table(self, table, position):
         super().sit_on_table(table, position)
@@ -29,13 +36,13 @@ class PlayerIHM(AbstractPlayer):
         self.waiting_condition.set("raise")
         return super().raise_pot(bet_amount)
 
-    def play_street(self, street_number: int):
+    def play_street(self, street: Street):
         current_bet = self.table.current_bet
-        if street_number < 3:
-            if current_bet > self.chips_committed:
-                return self.call()
-            else:
-                return self.check()
+        # if street_number < 3:
+        #     if current_bet > self.chips_committed:
+        #         return self.call()
+        #     else:
+        #         return self.check()
         button_raise = Button(
             self.table.window,
             text="RAISE",
@@ -73,4 +80,14 @@ class PlayerIHM(AbstractPlayer):
             label.destroy()
         bet_amount_entree.destroy()
         self.table.window.update()
-        return self.waiting_condition.get()
+        return self.play_from_str(self.waiting_condition.get())
+
+    def play_from_str(self, value):
+        if value == "raise":
+            return RAISE
+        elif value == "check":
+            return CHECK
+        elif value == "call":
+            return CALL
+        elif value == "fold":
+            return FOLD
