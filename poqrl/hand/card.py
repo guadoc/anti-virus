@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal, Optional, Any
 from dataclasses import dataclass
 
 
@@ -67,4 +67,10 @@ class Card:
     def __eq__(self, card):
         if self.high == card.high and self.suit == card.suit:
             return True
+        return False
+
+    def is_in(self, hand: Any):
+        for card in hand.cards:
+            if self.id == card.id:
+                return True
         return False

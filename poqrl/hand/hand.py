@@ -1,10 +1,11 @@
 from typing import List, Optional, Tuple
 from math import comb
+import numpy as np
 
 from poqrl.hand.card import Card, High
 from poqrl.hand.deck import Deck
 import poqrl.hand.utils as util
-from poqrl.hand.hand_values import HAND_AVG_VALUES
+from poqrl.hand.hand_values import HAND_AVG_VALUES, HAND_7_QUANTILE_10_VALUES
 
 HAND_MAX_VAL = 2598956
 HAND_MIN_VAL = 1020
@@ -14,7 +15,11 @@ class Hand:
     """Define a hand"""
 
     def __init__(
-        self, card_list: Optional[List[Card]] = None, hand_hash: Optional[str] = None
+        self,
+        card_list: List[Card] | None = None,
+        hand_hash: str | None = None,
+        max_cards: int = 7,
+        n_quantile_evaluation: int = 10,
     ):
         if card_list:
             self.cards = card_list
@@ -25,6 +30,10 @@ class Hand:
             ]
         else:
             self.cards = []
+
+        self.max_cards = max_cards
+        self.n_quantile_evaluation = n_quantile_evaluation
+        self._quantile_values = None
         self._value = None
         self._avg_value = None
 
@@ -38,16 +47,40 @@ class Hand:
         return self._value
 
     @property
-    def avg_value(self):        
+    def avg_value(self):
         if self._avg_value is None:
             hand_size = len(self.cards)
-            if hand_size == 7:
-                self._avg_value = self.value                        
-            elif hand_size in HAND_AVG_VALUES and self.hash in HAND_AVG_VALUES[hand_size] and True:                
+            if hand_size == self.max_cards:
+                self._avg_value = self.value
+            elif (
+                hand_size in HAND_AVG_VALUES and self.hash in HAND_AVG_VALUES[hand_size]
+            ):
                 self._avg_value = HAND_AVG_VALUES[hand_size][self.hash]
-            else:                
+            else:
                 self._avg_value = self.compute_mc_avg_value()
         return self._avg_value
+
+    @property
+    def quantile_values(self):
+        if len(self.cards) == self.max_cards:
+            self._quantile_values = self.value
+        else:
+            if self._quantile_values is None:
+                if HAND_7_QUANTILE_10_VALUES[len(self.cards)] is None:
+                    self._quantile_values = self.compute_quantile_values()
+                else:
+                    self._quantile_values = HAND_7_QUANTILE_10_VALUES[len(self.cards)][
+                        self.light_hash
+                    ]
+        return np.array(self._quantile_values)
+
+    def compute_quantile_values(self):
+        hand_generator = util.all_hands_from_cards(self.max_cards, self.cards)
+        values = []
+        q = np.arange(0, 1.1, 1 / self.n_quantile_evaluation)
+        for full_hand in hand_generator:
+            values.append(full_hand.value)
+        return np.quantile(values, q)
 
     def __le__(self, hand):
         return self.value <= hand.value
@@ -67,6 +100,7 @@ class Hand:
         self.cards.append(card)
         self._value = None
         self._avg_value = None
+        self._quantile_values = None
 
     def sort(self):
         """Sort the list of cards.
@@ -78,6 +112,21 @@ class Hand:
         """Compute the hash key of a hand"""
         self.sort()
         return "".join(card.hash for card in self.cards)
+
+    @property
+    def light_hash(self):
+        """Compute a light with collision.
+        The collision are for hand with the same value.
+        If a permutation of the colors of the hand is equal to the color of another hand,
+        the hash value will be the same"""
+        self.sort()
+        permutation = {}
+        hash_value = ""
+        for card in self.cards:
+            if card.suit not in permutation:
+                permutation[card.suit] = len(permutation)
+            hash_value += Card(high=card.high, suit=permutation[card.suit]).hash
+        return hash_value
 
     def __str__(self) -> str:
         return " ".join(str(card) for card in self.cards)

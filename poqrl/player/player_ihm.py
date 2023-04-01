@@ -13,9 +13,6 @@ class PlayerIHM(PlayerLog):
         super().__init__(name=name)
         self.waiting_condition = None
 
-    def close_hand(self):
-        super().close_hand()
-
     def sit_on_table(self, table, position):
         super().sit_on_table(table, position)
         self.waiting_condition = StringVar()

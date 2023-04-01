@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict
-from collections import deque
+from collections import deque, defaultdict
 
 
 from poqrl.player.abstract_player import AbstractPlayer
@@ -28,6 +28,8 @@ class AbstractTable:
         self.side_pots = []
         self.total_pot = 0
         self.history = None
+
+        self.hand_info = None
 
     def sit_player(self, player: AbstractPlayer, position: int):
         """Anchor one player to the table"""
@@ -78,6 +80,10 @@ class AbstractTable:
     def get_player_action(self, player: AbstractPlayer, street: Street) -> Action:
         play = player.play_street(street)
         self.history[street].append((player.position, play, self.current_bet))
+
+        self.hand_info[player.position][play.id] += 1
+        self.hand_info[player.position]["total"] += 1
+
         return play
 
     def assign_pots(self):
@@ -110,46 +116,6 @@ class AbstractTable:
 
     def yield_pot_to_player(self, pot: int, player: AbstractPlayer()):
         player.stack += pot
-
-        # @staticmethod
-        # def fill_side_pots(side_pots, committed_amounts, player):
-        #     player_commitment = player.chips_committed
-        #     player_position = player.position
-        #     is_in_hand = player.is_in_hand
-        #     index_side_pot = 0
-        #     while (
-        #         index_side_pot < len(committed_amounts)
-        #         and player_commitment >= committed_amounts[index_side_pot]
-        #     ):
-        #         commitment = committed_amounts[index_side_pot]
-        #         player_commitment -= commitment
-        #         side_pots[index_side_pot][0] += commitment
-        #         if is_in_hand:
-        #             side_pots[index_side_pot][1].append(player_position)
-        #         index_side_pot += 1
-        #     if player_commitment:
-        #         if index_side_pot == len(committed_amounts):
-        #             if is_in_hand:
-        #                 side_pots.append([player_commitment, [player_position]])
-        #             else:
-        #                 side_pots.append([player_commitment, []])
-        #             committed_amounts.append(player_commitment)
-        #         else:
-        #             committed_amounts.insert(index_side_pot, player_commitment)
-        #             player_in_pot = list(side_pots[index_side_pot][1])
-        #             if is_in_hand:
-        #                 player_in_pot.append(player_position)
-        #             side_pots.insert(
-        #                 index_side_pot,
-        #                 [player_commitment * len(player_in_pot), player_in_pot],
-        #             )
-        #             index_side_pot += 1
-        #             committed_amounts[index_side_pot] -= player_commitment
-        #             side_pots[index_side_pot][0] -= player_commitment * len(
-        #                 side_pots[index_side_pot][1]
-        #             )
-
-        # return side_pots, committed_amounts
 
     def gather_chips_and_continue(self) -> bool:
         if self.current_bet:
@@ -210,7 +176,17 @@ class AbstractTable:
         self.side_pots = []
         self.pot = 0
         # clear the precedent hand histroy
-        self.history = {i: [] for i in range(4)}
+        self.history = {street: [] for street in Street}
+        self.hand_info = {
+            player.position: {
+                CALL.id: 0,
+                RAISE.id: 0,
+                CHECK.id: 0,
+                FOLD.id: 0,
+                "total": 0,
+            }
+            for player in self.players
+        }
 
     def get_blends(self):
         self.players[(self.button + 1) % self.n_players].raise_pot(1)
@@ -250,6 +226,7 @@ class AbstractTable:
         self.distribute_hands()
         self.play_preflop()
         n_in_hand, player_to_play = self.gather_chips_and_continue()
+
         if n_in_hand <= 1:
             return self.close_hand()
         else:

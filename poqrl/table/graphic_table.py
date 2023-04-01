@@ -110,7 +110,7 @@ class GraphicTable(AbstractTable):
         super().distribute_board_card(card)
         self.update_board()
         self.window.update()
-        time.sleep(0.25)
+        time.sleep(0.5)
 
     def distribute_hands(self):
         super().distribute_hands()
@@ -156,7 +156,7 @@ class GraphicTable(AbstractTable):
         play = super().get_player_action(player, street)
         self.update_pots()
         self.update_player(player, -1)
-        time.sleep(0.6)
+        time.sleep(1)
         print("---- Get player action")
         print(self)
         return play

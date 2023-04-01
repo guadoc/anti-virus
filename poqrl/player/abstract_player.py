@@ -5,7 +5,7 @@ from poqrl.hand.card import Card
 from poqrl.hand.hand import Hand
 from poqrl.player.utils import ActionError, SituationError
 from poqrl.types.street import Street
-from poqrl.types.action import *
+from poqrl.types.action import Action, FOLD, RAISE, CALL, CHECK
 
 
 class AbstractPlayer:
@@ -13,7 +13,7 @@ class AbstractPlayer:
 
     def __init__(
         self,
-        stack: int = 100,
+        stack: int = 500,
         name: str = "AbstractPlayer",
     ):
         self.table = None
@@ -29,15 +29,16 @@ class AbstractPlayer:
 
     @abstractmethod
     def save(self, folder):
-        pass
+        """save a player in a folder"""
 
     @abstractmethod
     def load(self, folder):
-        pass
+        """load a player data which was previously saved in a folder"""
 
     @abstractmethod
     def play_street(self, street: Street) -> Action:
         """Return the player action for street 'street number'"""
+        on_bet = self.chips_committed < self.table.current_bet
         if self.table.current_bet and self.chips_committed > self.table.current_bet:
             raise SituationError(
                 f"{self.name} -- chips_committed ({self.chips_committed}) > \
@@ -52,7 +53,27 @@ class AbstractPlayer:
                 f"{self.name} -- chips_committed ({self.chips_committed}) == \
                     current_bet ({self.table.current_bet}) and current_bet > 0"
             )
-        return CHECK  # useless
+
+        action = self.get_action(street, on_bet)
+        return self.play_action(street, action, on_bet)
+
+    @abstractmethod
+    def get_amount_to_raise(self, street, from_bet: bool) -> int:
+        """return the amount that has to be bet"""
+
+    @abstractmethod
+    def get_action(self, street: Street, on_bet: bool) -> Action:
+        """return an action to do"""
+
+    def play_action(self, street, action: Action, from_bet: bool) -> Action:
+        if action == RAISE:
+            return self.raise_pot(self.get_amount_to_raise(street, from_bet))
+        elif action == CALL:
+            return self.call()
+        elif action == CHECK:
+            return self.check()
+        else:
+            return self.fold()
 
     def get_chips_won(self):
         """Return the amount of chips (in blend) win (or lost) by the player"""

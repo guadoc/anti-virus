@@ -12,10 +12,10 @@ from poqrl.types.action import *
 class PlayerRandom(AbstractPlayer):
     def __init__(
         self,
-        stack: int = 100,
+        stack: int = 400,
         name="Random Player",
-        aggressivity: float = 0.1,
-        loosiness: float = 0.3,
+        aggressivity: float = 0.3,
+        loosiness: float = 0.8,
     ):
         super().__init__(stack=stack, name=name)
         self.p_call_all = [loosiness, 1 - loosiness]
@@ -30,7 +30,6 @@ class PlayerRandom(AbstractPlayer):
         super().reset_hand()
 
     def play_street(self, street: Street) -> Action:
-        # super().play_street(street)
         if self.chips_committed < self.table.current_bet:
             if self.call_all:
                 return self.call()
